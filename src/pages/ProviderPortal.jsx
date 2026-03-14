@@ -176,7 +176,7 @@ const ProviderPortal = () => {
                   price={service.price} 
                   type="unit" 
                   status="ACTIVE" 
-                  image={null}
+                  image={service.imageUrl}
                   location={service.location}
                   onDelete={handleDeleteService}
                 />

@@ -46,13 +46,15 @@ import Footer from './components/Footer'
 const HomePageContent = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchCategory, setSearchCategory] = useState('');
+  const [searchServiceType, setSearchServiceType] = useState('');
   const categoriesRef = useRef(null);
 
-  const handleSearch = (query, category) => {
+  const handleSearch = (query, category, type = '') => {
     setSearchQuery(query);
     setSearchCategory(category);
+    setSearchServiceType(type);
     // Smooth scroll to results if search is active
-    if (query || category) {
+    if (query || category || type) {
       window.scrollTo({ top: 600, behavior: 'smooth' });
     }
   };
@@ -69,7 +71,10 @@ const HomePageContent = () => {
         
         {/* Categories Overview */}
         <div ref={categoriesRef} id="categories-section">
-          <Categories onCategoryClick={setSearchCategory} />
+          <Categories onCategoryClick={(name, type) => {
+              setSearchCategory(name);
+              setSearchServiceType(type);
+          }} />
         </div>
 
         {/* Dynamic Search Results Section */}
@@ -79,6 +84,7 @@ const HomePageContent = () => {
                     title="Résultats de recherche" 
                     subtitle={`Affichage des résultats pour "${searchQuery || 'Tous'}" dans ${searchCategory || 'Toutes les catégories'}`}
                     category={searchCategory}
+                    serviceType={searchServiceType}
                     searchQuery={searchQuery}
                     limit={20}
                 />

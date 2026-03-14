@@ -48,6 +48,10 @@ const providerApi = {
         const response = await axios.delete(`${API_URL}/services/${id}`, getAuthHeaders());
         return response.data;
     },
+    toggleServiceAvailability: async (id, available) => {
+        const response = await axios.put(`${API_URL}/services/${id}/availability?available=${available}`, {}, getAuthHeaders());
+        return response.data;
+    },
 
     // Bookings
     getBookings: async (providerId) => {
@@ -89,6 +93,18 @@ const providerApi = {
     deletePromotion: async (id) => {
         const response = await axios.delete(`${API_URL}/promotions/${id}`, getAuthHeaders());
         return response.data;
+    },
+
+    // File Upload
+    uploadImage: async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const config = getAuthHeaders();
+        config.headers['Content-Type'] = 'multipart/form-data';
+        
+        const response = await axios.post('http://localhost:8080/api/upload', formData, config);
+        return response.data; // Returns the URL
     }
 };
 

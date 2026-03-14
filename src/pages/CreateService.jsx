@@ -14,7 +14,8 @@ import {
   Hash,
   Clock,
   Coffee,
-  List
+  List,
+  X
 } from 'lucide-react';
 import providerApi from '../services/providerApi';
 
@@ -86,8 +87,11 @@ const CreateService = () => {
     boardType: '',    
     menuDetails: '',  
     duration: '',     
-    serviceType: 'GENERIC'
+    serviceType: 'GENERIC',
+    images: [] // Store uploaded URLs
   });
+  
+  const [selectedImages, setSelectedImages] = useState([]); // { file, previewUrl }
   
   const [boardPrices, setBoardPrices] = useState({}); // { "Demi Pension": 150, ... }
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -147,6 +151,24 @@ const CreateService = () => {
         return next;
     });
   };
+  
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newImages = files.map(file => ({
+        file,
+        previewUrl: URL.createObjectURL(file)
+    }));
+    setSelectedImages(prev => [...prev, ...newImages]);
+  };
+  
+  const removeImage = (index) => {
+    setSelectedImages(prev => {
+        const next = [...prev];
+        URL.revokeObjectURL(next[index].previewUrl);
+        next.splice(index, 1);
+        return next;
+    });
+  };
 
   const handleSubmit = async () => {
     if (!formData.title || !formData.category) {
@@ -171,20 +193,33 @@ const CreateService = () => {
             return;
         }
 
+        // 1. Upload images first
+        const uploadedUrls = [];
+        for (const img of selectedImages) {
+            try {
+                const url = await providerApi.uploadImage(img.file);
+                uploadedUrls.push(url);
+            } catch (uploadErr) {
+                console.error("Failed to upload image", uploadErr);
+            }
+        }
+
         const servicePayload = {
             title: formData.title,
             category: formData.category,
             description: formData.description,
-            price: parseFloat(formData.price) || 0,
+            price: isHotel ? (parseFloat(Object.values(boardPrices)[0]) || 0) : (parseFloat(formData.price) || 0),
             capacity: parseInt(formData.capacity) || 1,
             location: formData.address,
             providerId: providerId,
             serviceType: formData.serviceType,
             roomView: formData.roomView,
-            boardType: Object.keys(boardPrices)[0] || '', // Pick first one as primary
+            boardType: Object.keys(boardPrices).join(', '), // Join all selected board types
             boardPrices: JSON.stringify(boardPrices),
             menuDetails: formData.menuDetails,
-            duration: formData.duration
+            duration: formData.duration,
+            imageUrl: uploadedUrls[0] || '', // Use first as thumbnail
+            images: uploadedUrls.join(',') // Comma separated list
         };
 
         await providerApi.createService(servicePayload);
@@ -338,7 +373,38 @@ const CreateService = () => {
             </div>
           </FormSection>
 
-          <FormSection number={isHotel || isRestaurant || isGuide ? "5" : "4"} title="Commodités & Tags" icon={TagIcon}>
+          <FormSection number={isHotel || isRestaurant || isGuide ? "5" : "4"} title="Photos du Service" icon={ImagePlus}>
+            <div className="space-y-8">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {selectedImages.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-3xl overflow-hidden group border border-gray-100 shadow-sm">
+                            <img src={img.previewUrl} alt="Preview" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            <button 
+                                onClick={() => removeImage(idx)}
+                                className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-lg opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500 hover:text-white"
+                            >
+                                <X className="w-4 h-4" />
+                            </button>
+                        </div>
+                    ))}
+                    
+                    <label className="aspect-square rounded-3xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-4 cursor-pointer hover:border-[#FF8C00] hover:bg-orange-50/30 transition-all group">
+                        <Upload className="w-8 h-8 text-gray-300 group-hover:text-[#FF8C00] transition-colors" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-[#FF8C00]">Ajouter des photos</span>
+                        <input 
+                            type="file" 
+                            multiple 
+                            accept="image/*" 
+                            onChange={handleImageChange}
+                            className="hidden" 
+                        />
+                    </label>
+                </div>
+                <p className="text-[10px] text-gray-400 font-medium pl-2 italic">* La première photo sera utilisée comme image principale de votre service.</p>
+            </div>
+          </FormSection>
+
+          <FormSection number={isHotel || isRestaurant || isGuide ? "6" : "5"} title="Commodités & Tags" icon={TagIcon}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {['WiFi Gratuit', 'Accès Piscine', 'Spa / Massage', 'Adapté aux Familles', 'Boissons Incluses', 'Navette', 'Guide Inclus', 'Assurance'].map((tag, i) => (
                 <label key={i} className="flex items-center gap-4 px-6 py-5 bg-white border border-gray-50 rounded-[1.5rem] cursor-pointer hover:border-orange-100 hover:shadow-sm transition-all group">

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 
@@ -10,239 +10,216 @@ import {
   AlertCircle,
   Plus,
   RefreshCcw,
-  CheckCircle2
+  CheckCircle2,
+  XCircle,
+  Power,
+  ShieldCheck,
+  Layout
 } from 'lucide-react';
+import providerApi from '../services/providerApi';
 
 const AvailabilityManager = () => {
-  const [currentMonth, setCurrentMonth] = useState(new Date(2024, 7)); // August 2024
-  const [selectedDate, setSelectedDate] = useState(15);
+  const [services, setServices] = useState([]);
+  const [selectedServiceId, setSelectedServiceId] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
 
-  const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-  const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
-  
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      const providerId = providerApi.getProviderId();
+      if (!providerId) return;
+      const data = await providerApi.getServices(providerId);
+      setServices(data);
+      if (data.length > 0) {
+        setSelectedServiceId(data[0].id);
+        setSelectedService(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleServiceChange = (e) => {
+    const id = parseInt(e.target.value);
+    setSelectedServiceId(id);
+    const service = services.find(s => s.id === id);
+    setSelectedService(service);
+  };
+
+  const handleToggleAvailability = async (newStatus) => {
+    if (!selectedService) return;
+    setIsSaving(true);
+    try {
+      await providerApi.toggleServiceAvailability(selectedServiceId, newStatus);
+      const updatedService = { ...selectedService, available: newStatus };
+      setSelectedService(updatedService);
+      setServices(services.map(s => s.id === selectedServiceId ? updatedService : s));
+    } catch (error) {
+      console.error("Error toggling availability:", error);
+      alert("Erreur lors de la mise à jour de la disponibilité.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const monthNames = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
 
-  const prevMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1));
-  };
-
-  const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1));
-  };
-
-  const handleSave = () => {
-     setIsSaving(true);
-     setTimeout(() => {
-        setIsSaving(false);
-        alert('Disponibilités mises à jour avec succès !');
-     }, 1000);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FF8C00]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
+        <div className="flex flex-col md:row items-start md:items-center justify-between gap-6 mb-10">
            <div>
-             <h1 className="text-3xl font-black text-gray-900 mb-2 mt-4 tracking-tight">Disponibilités & Calendrier</h1>
-             <p className="text-gray-400 font-medium">Gérez l'ouverture, la fermeture et la capacité de vos services au quotidien.</p>
+             <h1 className="text-3xl font-black text-gray-900 mb-2 mt-4 tracking-tight">Gestion de Disponibilité</h1>
+             <p className="text-gray-400 font-medium">Contrôlez la visibilité et l'état de vos services en temps réel.</p>
            </div>
            
-           <div className="flex items-center gap-4">
-              <select className="bg-white px-6 py-4 rounded-2xl border border-gray-100 font-bold text-sm text-gray-700 outline-none shadow-sm focus:ring-2 focus:ring-orange-100 cursor-pointer appearance-none pr-10 relative">
-                 <option>Suite Royale - Hôtel Amel</option>
-                 <option>Chambre Double Standard</option>
-                 <option>Excursion Île aux Flamants</option>
-              </select>
+           <div className="flex items-center gap-4 w-full md:w-auto">
+              <div className="relative flex-1 md:w-80">
+                <select 
+                  value={selectedServiceId || ''}
+                  onChange={handleServiceChange}
+                  className="w-full bg-white px-6 py-4 rounded-2xl border border-gray-100 font-bold text-sm text-gray-700 outline-none shadow-sm focus:ring-2 focus:ring-orange-100 cursor-pointer appearance-none transition-all"
+                >
+                  {services.map(service => (
+                    <option key={service.id} value={service.id}>{service.title}</option>
+                  ))}
+                  {services.length === 0 && <option value="">Aucun service trouvé</option>}
+                </select>
+                <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                  <Layout className="w-4 h-4" />
+                </div>
+              </div>
            </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
            
-           {/* Left Column: Calendar */}
+           {/* Left Column: Calendar UI (Static for now, as requested focusing on availability toggle) */}
            <div className="lg:col-span-8">
-              <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8">
-                 {/* Calendar Header */}
-                 <div className="flex items-center justify-between mb-8">
+              <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 h-full">
+                 <div className="flex items-center justify-between mb-12">
                     <h2 className="text-2xl font-black text-gray-900 capitalize">
-                       {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                       Calendrier Mensuel
                     </h2>
-                    <div className="flex items-center gap-2">
-                       <button onClick={prevMonth} className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center hover:bg-orange-50 hover:text-[#FF8C00] hover:border-orange-100 transition-all text-gray-400">
-                          <ChevronLeft className="w-5 h-5" />
-                       </button>
-                       <button onClick={nextMonth} className="w-10 h-10 rounded-xl border border-gray-100 flex items-center justify-center hover:bg-orange-50 hover:text-[#FF8C00] hover:border-orange-100 transition-all text-gray-400">
-                          <ChevronRight className="w-5 h-5" />
-                       </button>
+                    <div className="px-4 py-2 bg-gray-50 rounded-xl text-xs font-bold text-gray-400 uppercase tracking-widest border border-gray-100">
+                      Vision Globale
                     </div>
                  </div>
 
-                 {/* Days of week */}
-                 <div className="grid grid-cols-7 gap-4 mb-4">
-                    {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-                       <div key={day} className="text-center text-[10px] font-black uppercase tracking-widest text-gray-400">
-                          {day}
-                       </div>
-                    ))}
-                 </div>
-
-                 {/* Calendar Grid */}
-                 <div className="grid grid-cols-7 gap-4">
-                    {/* Empty slots */}
-                    {[...Array(firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1)].map((_, i) => (
-                       <div key={`empty-${i}`} className="h-24 rounded-2xl bg-gray-50/50 border border-transparent"></div>
-                    ))}
-                    
-                    {/* Days */}
-                    {[...Array(daysInMonth)].map((_, i) => {
-                       const day = i + 1;
-                       const isSelected = selectedDate === day;
-                       const isToday = day === 15 && currentMonth.getMonth() === 7; // Mock today
-                       
-                       // Mock statuses
-                       let status = 'available'; // available,  low, full, closed
-                       let capacity = "8/10";
-                       if (day === 5 || day === 6) { status = 'closed'; capacity = "Fermé"; }
-                       if (day === 12 || day === 13) { status = 'full'; capacity = "10/10"; }
-                       if (day >= 20 && day <= 24) { status = 'low'; capacity = "2/10"; }
-
-                       return (
-                          <div 
-                             key={day}
-                             onClick={() => setSelectedDate(day)}
-                             className={`h-28 rounded-3xl p-3 flex flex-col justify-between cursor-pointer transition-all border-2 relative overflow-hidden group
-                                ${isSelected ? 'border-[#FF8C00] shadow-xl shadow-orange-500/20' : 'border-gray-100 hover:border-orange-200 hover:bg-orange-50/30'}
-                                ${status === 'closed' ? 'bg-gray-50 grayscale select-none' : 'bg-white'}
-                             `}
-                          >
-                             {/* Date Number */}
-                             <div className="flex justify-between items-start">
-                                <span className={`text-base font-black w-8 h-8 rounded-xl flex items-center justify-center
-                                   ${isToday ? 'bg-[#FF8C00] text-white shadow-md' : isSelected ? 'bg-orange-100 text-[#FF8C00]' : 'text-gray-900 group-hover:text-[#FF8C00]'}
-                                `}>
-                                   {day}
-                                </span>
-                                {status === 'full' && (
-                                   <div className="w-2 h-2 rounded-full bg-red-400 mt-2 mr-1"></div>
-                                )}
-                                {status === 'closed' && (
-                                   <div className="w-2 h-2 rounded-full bg-gray-300 mt-2 mr-1"></div>
-                                )}
-                             </div>
-
-                             {/* Status Indicator */}
-                             {status !== 'closed' && (
-                                <div className="mt-auto">
-                                   <div className={`text-[10px] font-bold px-2 py-1 rounded-lg w-fit mb-1
-                                      ${status === 'full' ? 'bg-red-50 text-red-500' : status === 'low' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-500'}
-                                   `}>
-                                      {status === 'full' ? 'COMPLET' : status === 'low' ? 'FORTE DEM.' : 'DISPO'}
-                                   </div>
-                                   <p className="text-[10px] text-gray-400 font-bold px-1">{capacity}</p>
-                                </div>
-                             )}
-                             {status === 'closed' && (
-                                <div className="mt-auto text-center py-2">
-                                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-white/80 rounded-md backdrop-blur-sm">FERMÉ</p>
-                                </div>
-                             )}
-                          </div>
-                       );
-                    })}
+                 <div className="flex flex-col items-center justify-center h-[400px] text-center space-y-6">
+                    <div className="w-20 h-20 bg-orange-50 rounded-3xl flex items-center justify-center text-[#FF8C00]">
+                       <CalendarIcon className="w-10 h-10" />
+                    </div>
+                    <div className="max-w-md">
+                       <h3 className="text-xl font-bold text-gray-900 mb-2">Planification Avancée</h3>
+                       <p className="text-gray-400 text-sm leading-relaxed">
+                         La vue calendrier détaillée arrive bientôt. Vous pourrez gérer les réservations quotidiennes et les stocks de chambres spécifiquement.
+                       </p>
+                    </div>
+                    <button className="px-8 py-3 bg-white border border-gray-100 rounded-2xl text-xs font-bold text-gray-400 uppercase tracking-widest cursor-not-allowed">
+                       Bientôt Disponible
+                    </button>
                  </div>
               </div>
            </div>
 
-           {/* Right Column: Day Details & Quick Actions */}
+           {/* Right Column: Status Toggle */}
            <div className="lg:col-span-4 space-y-8">
-              {/* Day Editor */}
               <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm p-8 relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16 blur-2xl"></div>
                  
-                 <div className="flex items-center gap-4 mb-8">
-                    <div className="w-14 h-14 bg-[#FF8C00] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-orange-500/20">
-                       <CalendarIcon className="w-6 h-6" />
+                 <div className="flex items-center gap-4 mb-10">
+                    <div className={`w-14 h-14 ${selectedService?.available ? 'bg-green-500' : 'bg-red-500'} rounded-2xl flex items-center justify-center text-white shadow-lg transition-colors`}>
+                       <Power className="w-6 h-6" />
                     </div>
                     <div>
-                       <h3 className="text-xl font-black text-gray-900">{selectedDate} {monthNames[currentMonth.getMonth()]}</h3>
-                       <p className="text-sm font-bold text-[#FF8C00]">Modifier les paramètres</p>
+                       <h3 className="text-xl font-black text-gray-900">État du Service</h3>
+                       <p className={`text-sm font-bold ${selectedService?.available ? 'text-green-500' : 'text-red-500'}`}>
+                         {selectedService?.available ? 'Actuellement Visible' : 'Actuellement Masqué'}
+                       </p>
                     </div>
                  </div>
 
-                 <div className="space-y-6 relative z-10">
-                    {/* Status Toggle */}
+                 <div className="space-y-8 relative z-10">
                     <div>
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 block">État d'ouverture</label>
+                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-3 block">Contrôle de Visibilité</label>
                        <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                          <button className="flex-1 py-3 text-xs font-bold rounded-xl bg-white shadow-sm border border-gray-100 text-gray-900 transition-all flex justify-center items-center gap-2">
-                             <CheckCircle2 className="w-4 h-4 text-green-500"/> Ouvert
+                          <button 
+                            onClick={() => handleToggleAvailability(true)}
+                            className={`flex-1 py-4 text-xs font-bold rounded-xl transition-all flex justify-center items-center gap-2
+                              ${selectedService?.available ? 'bg-white shadow-md border border-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}
+                            `}
+                          >
+                             <CheckCircle2 className={`w-4 h-4 ${selectedService?.available ? 'text-green-500' : 'text-gray-300'}`}/> Ouvert
                           </button>
-                          <button className="flex-1 py-3 text-xs font-bold rounded-xl text-gray-500 hover:text-gray-900 transition-all">
-                             Fermé
+                          <button 
+                            onClick={() => handleToggleAvailability(false)}
+                            className={`flex-1 py-4 text-xs font-bold rounded-xl transition-all flex justify-center items-center gap-2
+                              ${!selectedService?.available ? 'bg-white shadow-md border border-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}
+                            `}
+                          >
+                             <XCircle className={`w-4 h-4 ${!selectedService?.available ? 'text-red-500' : 'text-gray-300'}`}/> Fermé
                           </button>
                        </div>
                     </div>
 
-                    <hr className="border-gray-50" />
-
-                    {/* Capacity */}
-                    <div>
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-2 flex items-center gap-2">
-                          <Users className="w-3 h-3"/> Capacité Totale
-                       </label>
-                       <div className="flex items-center bg-gray-50 rounded-2xl border border-gray-100 p-2">
-                          <button className="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-[#FF8C00] bg-white rounded-xl shadow-sm font-black text-lg">-</button>
-                          <input type="number" value="10" readOnly className="flex-1 text-center bg-transparent border-none font-black text-gray-900 text-lg outline-none" />
-                          <button className="w-12 h-12 flex items-center justify-center text-gray-400 hover:text-[#FF8C00] bg-white rounded-xl shadow-sm font-black text-lg">+</button>
-                       </div>
+                    <div className={`p-6 rounded-[2rem] border transition-all ${selectedService?.available ? 'bg-green-50/30 border-green-100' : 'bg-red-50/30 border-red-100'}`}>
+                        <div className="flex gap-4">
+                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${selectedService?.available ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>
+                              <ShieldCheck className="w-5 h-5" />
+                           </div>
+                           <p className="text-[10px] font-bold text-gray-500 leading-relaxed uppercase tracking-wide">
+                              {selectedService?.available 
+                                ? "Votre service est visible par tous les touristes. Ils peuvent le trouver via la recherche et les catégories."
+                                : "Votre service est masqué. Il n'apparaîtra plus sur la plateforme tant que vous ne l'aurez pas réactivé."
+                              }
+                           </p>
+                        </div>
                     </div>
 
-                    {/* Minimum Stay / Advance Notice */}
-                    <div className="bg-orange-50/50 p-5 rounded-3xl border border-orange-100/50">
-                       <label className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Settings className="w-3 h-3"/> Paramètres Avancés
-                       </label>
-                       <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                             <span className="text-xs font-bold text-gray-600">Séjour minimum</span>
-                             <select className="bg-white border flex-1 ml-4 border-gray-100 rounded-xl px-3 py-2 text-xs font-bold text-gray-900 outline-none">
-                                <option>1 nuit</option>
-                                <option>2 nuits</option>
-                                <option>3 nuits</option>
-                             </select>
-                          </div>
-                       </div>
+                    <div className="pt-4">
+                      <div className="flex items-center justify-between p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
+                        <div>
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Mise à jour</p>
+                          <p className="text-sm font-bold text-gray-900">À l'instant</p>
+                        </div>
+                        <div className="w-10 h-10 bg-white rounded-xl border border-gray-100 flex items-center justify-center text-gray-400">
+                          <Clock className="w-4 h-4" />
+                        </div>
+                      </div>
                     </div>
-
-                    <button 
-                       onClick={handleSave}
-                       className="w-full bg-[#1A1A1A] hover:bg-[#FF8C00] text-white py-4 rounded-2xl font-bold flex items-center justify-center gap-3 transition-colors shadow-xl active:scale-95 group"
-                    >
-                       {isSaving ? (
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                       ) : (
-                          <>
-                             <Save className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                             Sauvegarder les Date(s)
-                          </>
-                       )}
-                    </button>
                  </div>
               </div>
 
-              {/* Bulk Actions Card */}
-              <div className="bg-[#FF8C00] rounded-[40px] p-8 text-white relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-xl"></div>
+              {/* Tips Card */}
+              <div className="bg-[#1A1A1A] rounded-[40px] p-8 text-white relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-xl"></div>
                  <div className="relative z-10">
-                    <h3 className="text-xl font-black mb-4 leading-tight">Actions Groupées</h3>
-                    <p className="text-white/80 text-xs font-medium mb-8 leading-relaxed">Mettez à jour plusieurs dates en une seule fois (Ex: Fermeture saisonnière).</p>
-                    
-                    <button className="w-full bg-white text-[#FF8C00] py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-orange-50 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                       <RefreshCcw className="w-4 h-4" />
-                       Modifier la période
-                    </button>
+                    <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mb-6">
+                       <AlertCircle className="w-5 h-5 text-[#FF8C00]" />
+                    </div>
+                    <h3 className="text-lg font-black mb-3 leading-tight underline decoration-[#FF8C00] underline-offset-4">Conseil Pro</h3>
+                    <p className="text-white/60 text-xs font-medium leading-relaxed italic">
+                      "Utilisez le bouton 'Fermé' si toutes vos chambres sont occupées ou si vous êtes en maintenance pour éviter des réservations que vous ne pourrez pas honorer."
+                    </p>
                  </div>
               </div>
            </div>

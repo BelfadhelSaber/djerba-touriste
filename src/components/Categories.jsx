@@ -29,10 +29,10 @@ const Categories = ({ onCategoryClick }) => {
     fetchCounts();
   }, []);
 
-  const handleCategoryClick = (e, catName) => {
+  const handleCategoryClick = (e, catName, catType) => {
     e.preventDefault();
     if (onCategoryClick) {
-        onCategoryClick(catName);
+        onCategoryClick(catName, catType);
         window.scrollTo({ top: 600, behavior: 'smooth' });
     }
   };
@@ -56,7 +56,7 @@ const Categories = ({ onCategoryClick }) => {
         {categories.map((cat, i) => (
           <button 
             key={i} 
-            onClick={(e) => handleCategoryClick(e, cat.name)}
+            onClick={(e) => handleCategoryClick(e, cat.name, cat.type)}
             className="group p-10 bg-white border border-gray-100 rounded-[2.5rem] hover:border-[#FF8C00]/20 hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-500 text-center cursor-pointer block w-full"
           >
             <div className={`w-20 h-20 ${cat.color} rounded-[1.5rem] flex items-center justify-center mx-auto mb-8 group-hover:scale-110 transition-transform duration-500 shadow-sm`}>

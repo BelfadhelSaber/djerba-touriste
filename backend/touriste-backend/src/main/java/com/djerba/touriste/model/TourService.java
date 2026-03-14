@@ -21,6 +21,9 @@ public class TourService {
     private String title;
     private String imageUrl;
     
+    @Column(columnDefinition = "TEXT")
+    private String images;
+    
     @Column(length = 1000)
     private String description;
     
@@ -55,4 +58,8 @@ public class TourService {
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id")
     private User provider;
+
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean available = true;
 }

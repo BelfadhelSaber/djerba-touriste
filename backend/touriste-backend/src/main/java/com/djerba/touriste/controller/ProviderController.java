@@ -58,6 +58,7 @@ public class ProviderController {
                     existing.setLocation(service.getLocation());
                     existing.setCategory(service.getCategory());
                     existing.setImageUrl(service.getImageUrl());
+                    existing.setImages(service.getImages());
                     if (service.getProviderId() != null) {
                         userRepository.findById(service.getProviderId()).ifPresent(existing::setProvider);
                     }
@@ -70,6 +71,16 @@ public class ProviderController {
     public ResponseEntity<Void> deleteService(@PathVariable Long id) {
         serviceRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/services/{id}/availability")
+    public ResponseEntity<TourService> toggleAvailability(@PathVariable Long id, @RequestParam Boolean available) {
+        return serviceRepository.findById(id)
+                .map(service -> {
+                    service.setAvailable(available);
+                    return ResponseEntity.ok(serviceRepository.save(service));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // ==================== BOOKINGS ====================

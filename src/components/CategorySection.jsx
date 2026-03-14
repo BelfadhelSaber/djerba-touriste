@@ -73,21 +73,6 @@ const CategorySection = ({ title, subtitle, category, serviceType, searchQuery, 
                 <span className="text-sm font-bold text-[#1A1A1A]">4.9</span>
               </div>
               
-              {item.serviceType === 'ROOM' && (
-                 <div className="absolute bottom-6 left-6 flex flex-wrap gap-2">
-                    {item.boardPrices ? (
-                      Object.entries(JSON.parse(item.boardPrices)).slice(0, 1).map(([type, price]) => (
-                        <div key={type} className="bg-[#FF8C00] text-white px-3 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest shadow-lg">
-                           {type}: {price} TND
-                        </div>
-                      ))
-                    ) : item.boardType && (
-                        <div className="bg-[#FF8C00] text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg">
-                           {item.boardType}
-                        </div>
-                    )}
-                 </div>
-              )}
             </div>
             
             <div className="p-10">
@@ -95,9 +80,21 @@ const CategorySection = ({ title, subtitle, category, serviceType, searchQuery, 
                 {item.category || item.serviceType}
               </div>
               <h3 className="text-2xl font-display font-bold text-[#1A1A1A] mb-4 group-hover:text-[#FF8C00] transition-colors">{item.title}</h3>
-              <p className="text-gray-400 text-sm mb-10 leading-relaxed line-clamp-2 font-medium">
+              
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed line-clamp-2 font-medium">
                 {item.description}
               </p>
+
+              {item.serviceType === 'ROOM' && item.boardPrices && (
+                 <div className="flex flex-wrap gap-2 mb-8">
+                    {Object.entries(JSON.parse(item.boardPrices)).map(([type]) => (
+                      <div key={type} className="px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-100 text-[9px] font-bold text-gray-500 uppercase tracking-widest flex items-center gap-1.5 group/tag hover:border-orange-200 hover:bg-orange-50/30 transition-all">
+                        <div className="w-1 h-1 rounded-full bg-orange-300 group-hover/tag:bg-[#FF8C00] transition-colors"></div>
+                        {type}
+                      </div>
+                    ))}
+                 </div>
+              )}
               <div className="flex items-center justify-between pt-8 border-t border-gray-50">
                 <div>
                   <div className="flex items-baseline gap-1">

@@ -17,7 +17,9 @@ public class PublicController {
 
     @GetMapping("/services")
     public ResponseEntity<List<TourService>> getAllServices() {
-        return ResponseEntity.ok(serviceRepository.findAll());
+        return ResponseEntity.ok(serviceRepository.findAll().stream()
+            .filter(s -> Boolean.TRUE.equals(s.getAvailable()))
+            .toList());
     }
     
     @GetMapping("/services/category/{category}")
@@ -25,7 +27,7 @@ public class PublicController {
         // Find by category ignoring case, or filter in memory if the repository doesn't have a specific finder yet.
         List<TourService> allServices = serviceRepository.findAll();
         List<TourService> filtered = allServices.stream()
-            .filter(s -> category.equalsIgnoreCase(s.getCategory()))
+            .filter(s -> Boolean.TRUE.equals(s.getAvailable()) && category.equalsIgnoreCase(s.getCategory()))
             .toList();
             
         return ResponseEntity.ok(filtered);
@@ -35,7 +37,7 @@ public class PublicController {
     public ResponseEntity<List<TourService>> getServicesByType(@PathVariable String serviceType) {
         List<TourService> allServices = serviceRepository.findAll();
         List<TourService> filtered = allServices.stream()
-            .filter(s -> serviceType.equalsIgnoreCase(s.getServiceType()))
+            .filter(s -> Boolean.TRUE.equals(s.getAvailable()) && serviceType.equalsIgnoreCase(s.getServiceType()))
             .toList();
             
         return ResponseEntity.ok(filtered);
